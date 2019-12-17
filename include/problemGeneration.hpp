@@ -19,7 +19,8 @@ struct ProblemOptionsList : public OptionsParser
    int order = 1;
    bool static_cond = false;
    bool visualization = 0;
-   bool dump_fine_grid_matrix = false;
+   const char *dump_problem_to_dir = "*";
+   const char *read_problem_from_dir = "*";
    bool read_exact_solution = false;
    int dim = 2;
 

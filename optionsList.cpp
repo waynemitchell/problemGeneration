@@ -22,9 +22,10 @@ ProblemOptionsList::ProblemOptionsList(int argc, char *argv[]) : OptionsParser(a
    AddOption(&visualization, "-vis", "--visualization", "-no-vis",
                   "--no-visualization",
                   "Enable or disable GLVis visualization.");
-   AddOption(&dump_fine_grid_matrix, "-dump-mat", "--dump-fine-grid-matrix",
-                  "-no-dump-mat", "--no-dump-fine-grid-matrix",
-                  "Dump fine grid matrix to file");
+   AddOption(&dump_problem_to_dir, "-dump-prob", "--dump-problem-dir",
+                  "Directory to dump the problem to");
+   AddOption(&read_problem_from_dir, "-read-prob", "--read-problem-dir",
+                  "Directory to read the problem from");
    AddOption(&read_exact_solution, "-read-exact", "--read-exact-solution",
                   "-no-read-exact", "--no-read-exact-solution",
                   "Read exact solution from file");

@@ -9,7 +9,7 @@ project(problemGeneration
     LANGUAGES CXX)
 
 add_library(problemGeneration
-   STATIC
+   SHARED
    "problemGeneration.cpp"
    "optionsList.cpp"
    "mfemtohypre.cpp"
