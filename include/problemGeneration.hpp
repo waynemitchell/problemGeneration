@@ -6,10 +6,8 @@
 using namespace std;
 using namespace mfem;
 
-// Collection of options for problem generation
-class ProblemOptionsList
+struct ProblemOptionsList : public OptionsParser
 {
-public:
    // Default options list
    int problem = 0;
    int rhs = 1;
@@ -24,8 +22,9 @@ public:
    bool dump_fine_grid_matrix = false;
    bool read_exact_solution = false;
    int dim = 2;
+
+   ProblemOptionsList(int argc, char *argv[]);
 };
-void SetProblemOptions(ProblemOptionsList &options, int argc, char *argv[]);
 
 // Main problem generation call
 void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options);

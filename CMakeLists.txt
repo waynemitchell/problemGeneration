@@ -11,6 +11,7 @@ project(problemGeneration
 add_library(problemGeneration
    STATIC
    "problemGeneration.cpp"
+   "optionsList.cpp"
    "mfemtohypre.cpp"
    "getMesh.cpp"
    "diffusion.cpp"
