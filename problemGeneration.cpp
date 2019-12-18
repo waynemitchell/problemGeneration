@@ -3,8 +3,8 @@
 void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options)
 {
    int num_procs, myid;
-   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+   MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs);
+   MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid);
 
    auto start = chrono::system_clock::now();
 
@@ -17,17 +17,12 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
    {
       char filename[1024];
       sprintf(filename, "%s/A_problem%dP%dn%d", options.read_problem_from_dir, options.problem, num_procs, options.n);
-      A = hypre_ParCSRMatrixRead(MPI_COMM_WORLD, filename);
+      A = hypre_ParCSRMatrixRead(hypre_MPI_COMM_WORLD, filename);
       sprintf(filename, "%s/b_problem%dP%dn%d", options.read_problem_from_dir, options.problem, num_procs, options.n);
-      B = hypre_ParVectorRead(MPI_COMM_WORLD, filename);
-      // sprintf(filename, "outputs/x");
-      // hypre_ParVectorPrint( X, filename );
-      HYPRE_Int *partitioning;
-      HYPRE_Int global_m, global_n;
-      HYPRE_ParCSRMatrixGetRowPartitioning(A, &partitioning);
-      HYPRE_ParCSRMatrixGetDims(A, &global_m, &global_n);
-      HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, global_m, partitioning, &X);
+      B = hypre_ParVectorRead(hypre_MPI_COMM_WORLD, filename);
+      HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, hypre_ParVectorGlobalSize(B), hypre_ParVectorPartitioning(B), &X);
       HYPRE_ParVectorInitialize(X);
+      hypre_ParVectorSetPartitioningOwner(X, 0);
    }
    else
    {
@@ -76,14 +71,12 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
          hypre_ParCSRMatrixPrint( A, filename );
          sprintf(filename, "%s/b_problem%dP%dn%d", options.dump_problem_to_dir, options.problem, num_procs, options.n);
          hypre_ParVectorPrint( B, filename );
-         // sprintf(filename, "outputs/x");
-         // hypre_ParVectorPrint( X, filename );
       }
    }
 
    if (options.random_initial) HYPRE_ParVectorSetRandomValues(X, myid);
    if (options.rhs == -1) HYPRE_ParVectorSetRandomValues(B, myid+1);
-   
+
    if (myid == 0)
    {
       cout << "Size of linear system: " << hypre_ParCSRMatrixGlobalNumRows(A) << endl;
