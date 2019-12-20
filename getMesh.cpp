@@ -1,5 +1,8 @@
 #include "include/problemGeneration.hpp"
 
+using namespace std;
+using namespace mfem;
+
 ParMesh* GetMesh(ProblemOptionsList &options)
 {
    int num_procs, myid;

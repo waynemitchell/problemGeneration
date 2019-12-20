@@ -3,10 +3,7 @@
 #include <iostream>
 #include <chrono>
 
-using namespace std;
-using namespace mfem;
-
-struct ProblemOptionsList : public OptionsParser
+struct ProblemOptionsList : public mfem::OptionsParser
 {
    // Default options list
    int problem = 0;
@@ -21,6 +18,7 @@ struct ProblemOptionsList : public OptionsParser
    bool visualization = 0;
    const char *dump_problem_to_dir = "*";
    const char *read_problem_from_dir = "*";
+   bool read_matrix_market = false;
    bool read_exact_solution = false;
    int dim = 2;
 
@@ -31,7 +29,7 @@ struct ProblemOptionsList : public OptionsParser
 void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options);
 
 // Mesh
-ParMesh* GetMesh(ProblemOptionsList &options);
+mfem::ParMesh* GetMesh(ProblemOptionsList &options);
 
 // MFEM generated problems
 void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options);
@@ -42,4 +40,4 @@ HYPRE_Int BuildParRotate7pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &optio
 HYPRE_Int BuildParDifConv(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options);
 
 // Conversion from hypre objects to hypre
-void MFEMtoHYPRE(HypreParMatrix &A, Vector &B, Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out);
+void MFEMtoHYPRE(mfem::HypreParMatrix &A, mfem::Vector &B, mfem::Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out);

@@ -1,5 +1,8 @@
 #include "include/problemGeneration.hpp"
 
+using namespace std;
+using namespace mfem;
+
 ProblemOptionsList::ProblemOptionsList(int argc, char *argv[]) : OptionsParser(argc, argv)
 {
    AddOption(&problem, "-P", "--problem",
@@ -26,6 +29,9 @@ ProblemOptionsList::ProblemOptionsList(int argc, char *argv[]) : OptionsParser(a
                   "Directory to dump the problem to");
    AddOption(&read_problem_from_dir, "-read-prob", "--read-problem-dir",
                   "Directory to read the problem from");
+   AddOption(&read_matrix_market, "-read-mtx", "--read-matrix-market",
+                  "-no-read-mtx", "--no-read-matrix-market",
+                  "Reading matrix market files (default is HYPRE_ParCSRMatrix)");
    AddOption(&read_exact_solution, "-read-exact", "--read-exact-solution",
                   "-no-read-exact", "--no-read-exact-solution",
                   "Read exact solution from file");

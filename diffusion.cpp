@@ -1,5 +1,8 @@
 #include "include/problemGeneration.hpp"
 
+using namespace std;
+using namespace mfem;
+
 double PointSource(const Vector &pt, double t);
 double JumpCoeffScalarFunc(const Vector &pt, double t);
 double FourRegionScalar(const Vector &pt, double t);

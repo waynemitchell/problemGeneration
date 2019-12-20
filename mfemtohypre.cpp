@@ -1,5 +1,8 @@
 #include "include/problemGeneration.hpp"
 
+using namespace std;
+using namespace mfem;
+
 // Conversion from hypre objects to hypre
 void MFEMtoHYPRE(HypreParMatrix &A, Vector &B, Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out)
 {
