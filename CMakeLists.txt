@@ -17,11 +17,24 @@ add_library(problemGeneration
    "diffusion.cpp"
    "hypreMatrices.cpp")
 
-
 # mfem
 find_package(MFEM REQUIRED)
 include_directories(SYSTEM ${MFEM_INCLUDE_DIRS})
-# target_link_libraries(problemGeneration MFEM)
+list(APPEND LIBRARIES "${MFEM_LIBRARY_DIR}/libmfem.a")
+
+# MPI
+find_package(MPI REQUIRED)
+include_directories(${MPI_CXX_INCLUDE_PATH})
+list(APPEND LIBRARIES ${MPI_CXX_LIBRARIES})
+
+# hypre
+set(HYPRE_DIR /home/nfs/wmitchell/Documents/hypre/src/hypre)
+set(HYPRE_LIB ${HYPRE_DIR}/lib/libHYPRE.a)
+include_directories(${HYPRE_DIR}/include)
+list(APPEND LIBRARIES ${HYPRE_LIB})
+
+# Link all libraries
+target_link_libraries(problemGeneration ${LIBRARIES})
 
 
 
