@@ -46,7 +46,11 @@ ParMesh* GetMesh(ProblemOptionsList &options)
       int Ns = mesh->GetNE();
       int ref_factor = 1;
       for (auto i = 0; i < options.dim; i++) ref_factor *= 2;
-      while (Ns * ref_factor < N) ref_levels++;
+      while (Ns * ref_factor < N)
+      {
+         Ns *= ref_factor;
+         ref_levels++;
+      }
    }
 
    // 5. Refine the serial mesh on all processors to increase the resolution. In

@@ -5,7 +5,7 @@ using namespace mfem;
 
 void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options);
 
-void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options)
+void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo)
 {
    int num_procs, myid;
    MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs);
@@ -57,7 +57,7 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
       else 
       {
 
-         if (options.problem < 10) GetMatrixDiffusion(&A,&B,&X,options);
+         if (options.problem < 10) GetMatrixDiffusion(&A,&B,&X,options,probInfo);
          // else if (options.problem < 20) GetMatrixAdvectionDiffusionReaction(&A,&B,&X,options)
          // else if (options.problem < 30) GetMatrixElasticity(&A,&B,&X,options);
          else

@@ -8,7 +8,7 @@ double JumpCoeffScalarFunc(const Vector &pt, double t);
 double FourRegionScalar(const Vector &pt, double t);
 void FourRegionMatrix(const Vector &pt, double t, DenseMatrix &mat);
 
-void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options)
+void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo)
 {
    // 1. Initialize MPI.
    int num_procs, myid;
@@ -16,29 +16,28 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
    // Get the mesh
-   ParMesh *pmesh = GetMesh(options);
+   probInfo.pmesh = GetMesh(options);
 
    // 7. Define a parallel finite element space on the parallel mesh. Here we
    //    use continuous Lagrange finite elements of the specified order. If
    //    order < 1, we instead use an isoparametric/isogeometric space.
-   FiniteElementCollection *fec;
    if (options.order > 0)
    {
-      fec = new H1_FECollection(options.order, options.dim);
+      probInfo.fec = new H1_FECollection(options.order, options.dim);
    }
-   else if (pmesh->GetNodes())
+   else if (probInfo.pmesh->GetNodes())
    {
-      fec = pmesh->GetNodes()->OwnFEC();
+      probInfo.fec = probInfo.pmesh->GetNodes()->OwnFEC();
       if (myid == 0)
       {
-         cout << "Using isoparametric FEs: " << fec->Name() << endl;
+         cout << "Using isoparametric FEs: " << probInfo.fec->Name() << endl;
       }
    }
    else
    {
-      fec = new H1_FECollection(options.order = 1, options.dim);
+      probInfo.fec = new H1_FECollection(options.order = 1, options.dim);
    }
-   ParFiniteElementSpace *fespace = new ParFiniteElementSpace(pmesh, fec);
+   ParFiniteElementSpace *fespace = new ParFiniteElementSpace(probInfo.pmesh, probInfo.fec);
    HYPRE_Int size = fespace->GlobalTrueVSize();
    if (myid == 0)
    {
@@ -50,9 +49,9 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    //    by marking all the boundary attributes from the mesh as essential
    //    (Dirichlet) and converting them to a list of true dofs.
    Array<int> ess_tdof_list;
-   if (pmesh->bdr_attributes.Size())
+   if (probInfo.pmesh->bdr_attributes.Size())
    {
-      Array<int> ess_bdr(pmesh->bdr_attributes.Max());
+      Array<int> ess_bdr(probInfo.pmesh->bdr_attributes.Max());
       ess_bdr = 1;
       fespace->GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
    }
@@ -60,39 +59,32 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    // 9. Set up the parallel linear form b(.) which corresponds to the
    //    right-hand side of the FEM linear system, which in this case is
    //    (1,phi_i) where phi_i are the basis functions in fespace.
-   ParLinearForm *b = new ParLinearForm(fespace);
-   std::vector<Coefficient*> lf_coeffs;
+   probInfo.b = new ParLinearForm(fespace);
    switch (options.rhs)
    {
       case -1:
       {
-         lf_coeffs.push_back( new ConstantCoefficient(0.0) );
-         b->AddDomainIntegrator(new DomainLFIntegrator(*(lf_coeffs[0])));
+         probInfo.lf_coeffs.push_back( new ConstantCoefficient(0.0) );
+         probInfo.b->AddDomainIntegrator(new DomainLFIntegrator(*(probInfo.lf_coeffs[0])));
          break;
       }
       case 0:
       {
-         lf_coeffs.push_back( new ConstantCoefficient(0.0) );
-         b->AddDomainIntegrator(new DomainLFIntegrator(*(lf_coeffs[0])));
+         probInfo.lf_coeffs.push_back( new ConstantCoefficient(0.0) );
+         probInfo.b->AddDomainIntegrator(new DomainLFIntegrator(*(probInfo.lf_coeffs[0])));
          break;
       }
       case 1:
       {
-         lf_coeffs.push_back( new ConstantCoefficient(1.0) );
-         b->AddDomainIntegrator(new DomainLFIntegrator(*(lf_coeffs[0])));
+         probInfo.lf_coeffs.push_back( new ConstantCoefficient(1.0) );
+         probInfo.b->AddDomainIntegrator(new DomainLFIntegrator(*(probInfo.lf_coeffs[0])));
          break;
       }
       case 2:
       {
-         lf_coeffs.push_back( new FunctionCoefficient(PointSource) );
-         b->AddDomainIntegrator(new DomainLFIntegrator(*(lf_coeffs[0])));
+         probInfo.lf_coeffs.push_back( new FunctionCoefficient(PointSource) );
+         probInfo.b->AddDomainIntegrator(new DomainLFIntegrator(*(probInfo.lf_coeffs[0])));
          break;
-      }
-      case 3:
-      {
-         lf_coeffs.push_back( new ConstantCoefficient(0.0) );
-         b->AddDomainIntegrator(new DomainLFIntegrator(*(lf_coeffs[0])));
-         break;               
       }
       default:
       {
@@ -101,32 +93,30 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
          exit(1);
       }
    }
-   b->Assemble();
+   probInfo.b->Assemble();
 
    // 10. Define the solution vector x as a parallel finite element grid function
    //     corresponding to fespace. Initialize x with initial guess of zero,
    //     which satisfies the boundary conditions.
-   ParGridFunction x(fespace);
-   x = 0.0;
+   probInfo.x = new ParGridFunction(fespace);
+   *(probInfo.x) = 0.0;
 
    // 11. Set up the parallel bilinear form a(.,.) on the finite element space
    //     corresponding to the Laplacian operator -Delta, by adding the Diffusion
    //     domain integrator.
-   ParBilinearForm *a = new ParBilinearForm(fespace);
-   std::vector<Coefficient*> blf_coeffs;
-   std::vector<MatrixCoefficient*> blf_matrix_coeffs;
+   probInfo.a = new ParBilinearForm(fespace);
    switch (options.problem)
    {
       case 0:
       {
-         blf_coeffs.push_back( new ConstantCoefficient(1.0) );
-         a->AddDomainIntegrator(new DiffusionIntegrator(*(blf_coeffs[0])));
+         probInfo.blf_coeffs.push_back( new ConstantCoefficient(1.0) );
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_coeffs[0])));
          break;
       }
       case 1:
       {
-         blf_coeffs.push_back( new FunctionCoefficient(JumpCoeffScalarFunc) );
-         a->AddDomainIntegrator(new DiffusionIntegrator(*(blf_coeffs[0])));
+         probInfo.blf_coeffs.push_back( new FunctionCoefficient(JumpCoeffScalarFunc) );
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_coeffs[0])));
          break;
       }
       case 2:
@@ -140,7 +130,7 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
             double ep = 0.001;
             double data[4] = {c*c + ep*s*s, -c*s + ep*c*s, -c*s + ep*c*s, s*s + ep*c*c};
             mat = data;
-            blf_matrix_coeffs.push_back( new MatrixConstantCoefficient(mat) );
+            probInfo.blf_matrix_coeffs.push_back( new MatrixConstantCoefficient(mat) );
          }
          else if (options.dim == 3)
          {
@@ -159,18 +149,18 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
                               c*s*s*s + ep*c*c*c*s - ep*c*s, 
                               s*s*s*s + ep*c*c*s*s + ep*c*c};
             mat = data;
-            blf_matrix_coeffs.push_back( new MatrixConstantCoefficient(mat) );
+            probInfo.blf_matrix_coeffs.push_back( new MatrixConstantCoefficient(mat) );
          }
-         a->AddDomainIntegrator(new DiffusionIntegrator(*(blf_matrix_coeffs[0])));
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
          break;
       }
       case 3:
       {
          // Four region problem from Compatible Relaxation and Coarsening in Algebraic Multigrid paper
-         blf_coeffs.push_back( new FunctionCoefficient(FourRegionScalar) );
-         blf_matrix_coeffs.push_back( new MatrixFunctionCoefficient(2, FourRegionMatrix) );
-         a->AddDomainIntegrator(new DiffusionIntegrator(*(blf_matrix_coeffs[0])));
-         a->AddDomainIntegrator(new MassIntegrator(*(blf_coeffs[0])));
+         probInfo.blf_coeffs.push_back( new FunctionCoefficient(FourRegionScalar) );
+         probInfo.blf_matrix_coeffs.push_back( new MatrixFunctionCoefficient(2, FourRegionMatrix) );
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
+         probInfo.a->AddDomainIntegrator(new MassIntegrator(*(probInfo.blf_coeffs[0])));
 
          break;
       }
@@ -186,21 +176,14 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    //     system, applying any necessary transformations such as: parallel
    //     assembly, eliminating boundary conditions, applying conforming
    //     constraints for non-conforming AMR, static condensation, etc.
-   if (options.static_cond) { a->EnableStaticCondensation(); }
-   a->Assemble();
+   if (options.static_cond) { probInfo.a->EnableStaticCondensation(); }
+   probInfo.a->Assemble();
 
    HypreParMatrix A;
    Vector B, X;
-   a->FormLinearSystem(ess_tdof_list, x, *b, A, X, B);
+   probInfo.a->FormLinearSystem(ess_tdof_list, *(probInfo.x), *(probInfo.b), A, X, B);
 
    MFEMtoHYPRE(A, B, X, A_out, B_out, X_out);
-
-   // 17. Free the used memory.
-   // delete a;
-   // delete b;
-   // delete fespace;
-   // if (options.order > 0) { delete fec; }
-   // delete pmesh;
 }
 
 double PointSource(const Vector &pt, double t)
@@ -250,25 +233,27 @@ double JumpCoeffScalarFunc(const Vector &pt, double t)
 double FourRegionScalar(const Vector &pt, double t)
 {
    double f = 1.0;
+   
+   double cross_pt[2] = {0.0,0.0};
 
    int dim = pt.Size();
    double x = pt(0), y = pt(1);//, z = 0.0;
 
    if (dim == 2)
    {
-      if (0.0 <= x && x <= 0.5 && 0.0 <= y && y <= 0.5)
+      if (x <= cross_pt[0] && y <= cross_pt[1])
       {
          f = 10000;
       }
-      else if (0.5 < x && x <= 1.0 && 0.0 <= y && y <= 0.5)
+      else if (cross_pt[0] < x && y <= cross_pt[1])
       {
          f = 0.0;
       }
-      else if (0.0 <= x && x <= 0.5 && 0.5 < y && y <= 1.0)
+      else if (x <= cross_pt[0] && cross_pt[1] < y)
       {
          f = 0.0;
       }
-      else if (0.5 < x && x <= 1.0 && 0.5 < y && y <= 1.0)
+      else if (cross_pt[0] < x && cross_pt[1] < y)
       {
          f = 0.0;
       }
@@ -281,26 +266,28 @@ void FourRegionMatrix(const Vector &pt, double t, DenseMatrix &mat)
 {
    double data[4] = {1.0, 0.0, 0.0, 1.0};
 
+   double cross_pt[2] = {0.0,0.0};
+
    int dim = pt.Size();
    double x = pt(0), y = pt(1);//, z = 0.0;
 
    if (dim == 2)
    {
-      if (0.0 <= x && x <= 0.5 && 0.0 <= y && y <= 0.5)
+      if (x <= cross_pt[0] && y <= cross_pt[1])
       {
 
       }
-      else if (0.5 < x && x <= 1.0 && 0.0 <= y && y <= 0.5)
+      else if (cross_pt[0] < x && y <= cross_pt[1])
       {
 
       }
-      else if (0.0 <= x && x <= 0.5 && 0.5 < y && y <= 1.0)
+      else if (x <= cross_pt[0] && cross_pt[1] < y)
       {
          data[3] = 0.01;
       }
-      else if (0.5 < x && x <= 1.0 && 0.5 < y && y <= 1.0)
+      else if (cross_pt[0] < x && cross_pt[1] < y)
       {
-         double theta = 0.5*M_PI;
+         double theta = 3.0/16.0*M_PI;
          double c = cos(theta);
          double s = sin(theta);
          double ep = 0.001;
