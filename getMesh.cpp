@@ -9,6 +9,8 @@ ParMesh* GetMesh(ProblemOptionsList &options)
    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
+   if (myid == 0) cout << "Getting the mesh ..." << endl;
+
    // 4. Read the (serial) mesh from the given mesh file on all processors.  We
    //    can handle triangular, quadrilateral, tetrahedral, hexahedral, surface
    //    and volume meshes with the same code.
@@ -22,9 +24,9 @@ ParMesh* GetMesh(ProblemOptionsList &options)
       int M = 0;
       int Ns = N;
       int ref_factor = 2;
-      int Ms = round(M / ref_factor);
       if (options.dim == 2) M = round(sqrt(N));
       if (options.dim == 3) M = round(cbrt(N));
+      int Ms = round(M / ref_factor);
       while (M % (ref_factor*2) == 0 || Ns > options.n)
       {
          ref_levels++;
@@ -67,7 +69,7 @@ ParMesh* GetMesh(ProblemOptionsList &options)
       Ns *= ref_factor;
    }
    int par_ref_levels = ref_levels - serial_ref_levels;
-   if (myid == 0) cout << "serial_ref_levels = " << serial_ref_levels << ", par_ref_levels = " << par_ref_levels << endl;
+   if (myid == 0) cout << "   serial_ref_levels = " << serial_ref_levels << ", par_ref_levels = " << par_ref_levels << endl;
    for (int l = 0; l < serial_ref_levels; l++)
    {
       mesh->UniformRefinement();

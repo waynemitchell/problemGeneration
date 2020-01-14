@@ -15,6 +15,8 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
+   if (myid == 0) cout << "   Generating diffusion matrix ..." << endl;
+
    // Get the mesh
    probInfo.pmesh = GetMesh(options);
 

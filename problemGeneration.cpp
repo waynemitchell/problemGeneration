@@ -11,6 +11,8 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
    MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs);
    MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid);
 
+   if (myid == 0) cout << "Generating problem ..." << endl;
+
    auto start = chrono::system_clock::now();
 
    HYPRE_ParCSRMatrix A;
