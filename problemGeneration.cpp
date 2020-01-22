@@ -23,14 +23,17 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
    if (options.read_problem_from_dir[0] != '*')
    {
       if (options.read_matrix_market) ReadMatrixMarket(&A, &B, &X, options);
-      char filename[1024];
-      sprintf(filename, "%s/A_problem%dP%dn%d", options.read_problem_from_dir, options.problem, num_procs, options.n);
-      A = hypre_ParCSRMatrixRead(hypre_MPI_COMM_WORLD, filename);
-      sprintf(filename, "%s/b_problem%dP%dn%d", options.read_problem_from_dir, options.problem, num_procs, options.n);
-      B = hypre_ParVectorRead(hypre_MPI_COMM_WORLD, filename);
-      HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, hypre_ParVectorGlobalSize(B), hypre_ParVectorPartitioning(B), &X);
-      HYPRE_ParVectorInitialize(X);
-      hypre_ParVectorSetPartitioningOwner(X, 0);
+      else
+      {
+         char filename[1024];
+         sprintf(filename, "%s/A_problem%dP%dn%d", options.read_problem_from_dir, options.problem, num_procs, options.n);
+         A = hypre_ParCSRMatrixRead(hypre_MPI_COMM_WORLD, filename);
+         sprintf(filename, "%s/b_problem%dP%dn%d", options.read_problem_from_dir, options.problem, num_procs, options.n);
+         B = hypre_ParVectorRead(hypre_MPI_COMM_WORLD, filename);
+         HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, hypre_ParVectorGlobalSize(B), hypre_ParVectorPartitioning(B), &X);
+         HYPRE_ParVectorInitialize(X);
+         hypre_ParVectorSetPartitioningOwner(X, 0);
+      }
    }
    else
    {
@@ -44,8 +47,11 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
             case -2:
                BuildParRotate7pt(&A, options);
                break;
-            default:
+            case -3:
                BuildParDifConv(&A, options);
+               break;
+            default:
+               Tridiagonal(&A, options);
          }
          HYPRE_Int *partitioning;
          HYPRE_Int global_m, global_n;
@@ -114,19 +120,29 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
       exit(1);
    }
 
-
    // Read in the matrix
    char filename[256];
    sprintf(filename, "%s.mtx", options.read_problem_from_dir);
 
+   cout << "Reading matrix market " << filename << endl;
+
    std::fstream ifs(filename, std::ios::in);
+   if (!ifs.is_open())
+   {
+      printf("Failed to open matrix market file.\n");
+      MPI_Finalize();
+      exit(1);
+   }
    std::string line;
    std::getline(ifs, line);
+
 
    // Only general and symmetric supported 
    if (!(line == "%%MatrixMarket matrix coordinate real general" || line == "%%MatrixMarket matrix coordinate real symmetric"))
    {
       printf("Only general or symmetric matrices supported\n");
+      MPI_Finalize();
+      exit(1);
    }
    const bool symmetric =
        line == "%%MatrixMarket matrix coordinate real symmetric";
@@ -139,10 +155,12 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    int num_rows = 0;
    int num_cols = 0;
    int num_nonzeros = 0;
-   sscanf(line.c_str(), "%d %d %d", num_rows, num_cols, num_nonzeros);
+   sscanf(line.c_str(), "%d %d %d", &num_rows, &num_cols, &num_nonzeros);
    if (!(num_rows >= 0 && num_cols >= 0 && num_nonzeros >= 0))
    {
       printf("Unexpected matrix size\n");
+      MPI_Finalize();
+      exit(1);
    }
 
    // Read in COO format (not necessarily sorted by row)
@@ -155,12 +173,16 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    {
       if (!line.empty()) 
       {
-         HYPRE_Int i, j;
-         HYPRE_Complex data;
-         sscanf(line.c_str(), "%d %d %f", i, j, data);
-         matrix_i[cnt] = i - 1;
-         matrix_j[cnt] = j - 1;
-         matrix_coo_data[cnt] = data;
+         stringstream line_stream;
+         line_stream.str(line);
+         int i, j;
+         double data;
+         line_stream >> i;
+         line_stream >> j;
+         line_stream >> data;
+         matrix_i[cnt] = (HYPRE_Int) i - 1;
+         matrix_j[cnt] = (HYPRE_Int) j - 1;
+         matrix_coo_data[cnt] = (HYPRE_Complex) data;
          cnt++;
       }
    }
@@ -237,11 +259,19 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    sprintf(filename, "%s_b.mtx", options.read_problem_from_dir);
 
    std::fstream ifs_b(filename, std::ios::in);
+   if (!ifs.is_open())
+   {
+      printf("Failed to open rhs file.\n");
+      MPI_Finalize();
+      exit(1);
+   }
    std::getline(ifs_b, line);
 
    if (!(line == "%%MatrixMarket matrix array real general"))
    {
       printf("Unexpected rhs matrix type\n");
+      MPI_Finalize();
+      exit(1);
    }
 
    // skip all comments
@@ -251,10 +281,12 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
 
    int b_num_rows = 0;
    int b_num_cols = 0;
-   sscanf(line.c_str(), "%d %d", b_num_rows, b_num_cols);
-   if (!(b_num_rows >= 0 && b_num_cols != 1))
+   sscanf(line.c_str(), "%d %d", &b_num_rows, &b_num_cols);
+   if (!(b_num_rows >= 0 && b_num_cols == 1))
    {
-      printf("Unexpected rhs size\n");
+      printf("Unexpected rhs size: num rows = %d, num cols = %d\n", b_num_rows, b_num_cols);
+      MPI_Finalize();
+      exit(1);
    }
 
    HYPRE_Complex *b_data = hypre_CTAlloc(HYPRE_Complex, b_num_rows, HYPRE_MEMORY_SHARED);
@@ -264,10 +296,11 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    {
       if (!line.empty()) 
       {
-         HYPRE_Complex data;
-         sscanf(line.c_str(), "%f", data);
-         b_data[cnt] = data;
-         cnt++;
+         stringstream line_stream;
+         line_stream.str(line);
+         double data;
+         line_stream >> data;
+         b_data[cnt++] = (HYPRE_Complex) data;
       }
    }
 
@@ -282,7 +315,6 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, hypre_ParVectorGlobalSize(B), hypre_ParVectorPartitioning(B), &X);
    HYPRE_ParVectorInitialize(X);
    hypre_ParVectorSetPartitioningOwner(X, 0);
-
 
    *A_out = A;
    *B_out = B;

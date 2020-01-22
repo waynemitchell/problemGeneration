@@ -455,7 +455,81 @@ BuildParDifConv( HYPRE_ParCSRMatrix  *A_ptr,
 }
 
 
+/*----------------------------------------------------------------------
+ * Build 1D Poisson (tridiagonal system)
+ * Parameters given in command line.
+ *----------------------------------------------------------------------*/
 
+HYPRE_Int
+Tridiagonal( HYPRE_ParCSRMatrix  *A_ptr,
+                   ProblemOptionsList &options     )
+{
+   HYPRE_Int                 nx, ny;
+   HYPRE_Int                 P, Q;
 
+   HYPRE_ParCSRMatrix  A;
 
+   HYPRE_Int                 num_procs, myid;
+   HYPRE_Int                 p, q;
+   HYPRE_Real          eps, alpha;
 
+   alpha =  0.00;
+   eps = 0.00;
+
+   /*-----------------------------------------------------------
+    * Initialize some stuff
+    *-----------------------------------------------------------*/
+
+   hypre_MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs );
+   hypre_MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid );
+
+   /*-----------------------------------------------------------
+    * Set defaults
+    *-----------------------------------------------------------*/
+
+   nx = options.n;
+   ny = 1;
+
+   P  = num_procs;
+   Q  = 1;
+
+   /*-----------------------------------------------------------
+    * Check a few things
+    *-----------------------------------------------------------*/
+
+   if ((P*Q) != num_procs)
+   {
+      hypre_printf("Error: Invalid number of processors or processor topology \n");
+      exit(1);
+   }
+
+   /*-----------------------------------------------------------
+    * Print driver parameters
+    *-----------------------------------------------------------*/
+
+   if (myid == 0)
+   {
+      hypre_printf("  Tridiagonal:\n");
+      hypre_printf("    n = %d\n", nx);
+      hypre_printf("    P = %d\n", P);
+   }
+
+   /*-----------------------------------------------------------
+    * Set up the grid structure
+    *-----------------------------------------------------------*/
+
+   /* compute p,q from P,Q and myid */
+   p = myid;
+   q = 0;
+
+   /*-----------------------------------------------------------
+    * Generate the matrix 
+    *-----------------------------------------------------------*/
+
+   A = (HYPRE_ParCSRMatrix) GenerateRotate7pt(hypre_MPI_COMM_WORLD,
+                                              nx, ny, P, Q, p, q, alpha, eps);
+
+   *A_ptr = A;
+
+   return (0);
+}

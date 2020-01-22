@@ -15,7 +15,7 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-   if (myid == 0) cout << "   Generating diffusion matrix ..." << endl;
+   if (myid == 0) cout << "Generating diffusion matrix ..." << endl;
 
    // Get the mesh
    probInfo.pmesh = GetMesh(options);
@@ -109,24 +109,24 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
    probInfo.a = new ParBilinearForm(fespace);
    switch (options.problem)
    {
-      case 0:
+      case 0: // Isotropic diffusion
       {
          probInfo.blf_coeffs.push_back( new ConstantCoefficient(1.0) );
          probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_coeffs[0])));
          break;
       }
-      case 1:
+      case 1: // Jump Coefficient diffusion
       {
          probInfo.blf_coeffs.push_back( new FunctionCoefficient(JumpCoeffScalarFunc) );
          probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_coeffs[0])));
          break;
       }
-      case 2:
+      case 2: // Non grid aligned anisotropic diffusion (2D and 3D)
       {
          if (options.dim == 2)
          {
             DenseMatrix mat(2, 2);
-            double theta = M_PI/8.0;
+            double theta = 3.0*M_PI/16.0;
             double c = cos(theta);
             double s = sin(theta);
             double ep = 0.001;
@@ -156,14 +156,48 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
          probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
          break;
       }
-      case 3:
-      {
-         // Four region problem from Compatible Relaxation and Coarsening in Algebraic Multigrid paper
+      case 3: // Four region problem from Compatible Relaxation and Coarsening in Algebraic Multigrid paper
+      {         
          probInfo.blf_coeffs.push_back( new FunctionCoefficient(FourRegionScalar) );
          probInfo.blf_matrix_coeffs.push_back( new MatrixFunctionCoefficient(2, FourRegionMatrix) );
          probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
          probInfo.a->AddDomainIntegrator(new MassIntegrator(*(probInfo.blf_coeffs[0])));
 
+         break;
+      }
+      case 4: // Grid aligned anisotropic diffusion (2D and 3D)
+      {
+         if (options.dim == 2)
+         {
+            DenseMatrix mat(2, 2);
+            double theta = 0.0;
+            double c = cos(theta);
+            double s = sin(theta);
+            double ep = 0.001;
+            double data[4] = {c*c + ep*s*s, -c*s + ep*c*s, -c*s + ep*c*s, s*s + ep*c*c};
+            mat = data;
+            probInfo.blf_matrix_coeffs.push_back( new MatrixConstantCoefficient(mat) );
+         }
+         else if (options.dim == 3)
+         {
+            DenseMatrix mat(3,3);
+            double theta = 0.0;
+            double c = cos(theta);
+            double s = sin(theta);
+            double ep = 0.001;
+            double data[9] = {c*c + ep*s*s, 
+                              c*c*s - ep*c*c*s, 
+                              c*s*s - ep*c*s*s, 
+                              c*c*s + ep*c*c*c*c + ep*s*s,
+                              c*c*s*s + ep*c*c*c*c + ep*s*s,
+                              c*s*s*s + ep*c*c*c*s - ep*s*c, 
+                              s*s*c - ep*c*s*s, 
+                              c*s*s*s + ep*c*c*c*s - ep*c*s, 
+                              s*s*s*s + ep*c*c*s*s + ep*c*c};
+            mat = data;
+            probInfo.blf_matrix_coeffs.push_back( new MatrixConstantCoefficient(mat) );
+         }
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
          break;
       }
       default:
