@@ -533,3 +533,228 @@ Tridiagonal( HYPRE_ParCSRMatrix  *A_ptr,
 
    return (0);
 }
+
+/*----------------------------------------------------------------------
+ * Build standard 5-point laplacian in 2D 
+ *----------------------------------------------------------------------*/
+
+HYPRE_Int
+BuildParLaplacian5pt( HYPRE_ParCSRMatrix  *A_ptr,
+                 ProblemOptionsList &options)
+{
+   HYPRE_Int                 nx, ny, nz;
+   HYPRE_Int                 P, Q, R;
+   HYPRE_Real          cx, cy, cz;
+
+   HYPRE_ParCSRMatrix  A;
+
+   HYPRE_Int                 num_procs, myid;
+   HYPRE_Int                 p, q, r;
+   HYPRE_Real         *values;
+   HYPRE_Real         *mtrx;
+
+   HYPRE_Real          ep = .1;
+   
+   
+   
+   /*-----------------------------------------------------------
+    * Initialize some stuff
+    *-----------------------------------------------------------*/
+
+   hypre_MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs );
+   hypre_MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid );
+
+   /*-----------------------------------------------------------
+    * Set defaults
+    *-----------------------------------------------------------*/
+ 
+   nx = ceil(sqrt(options.n))*ceil(sqrt(num_procs));;
+   ny = ceil(sqrt(options.n))*ceil(sqrt(num_procs));
+   nz = 1;
+
+   P  = round(sqrt(num_procs));
+   Q  = round(sqrt(num_procs));
+   R  = 1;
+
+   cx = 1.;
+   cy = 1.;
+   cz = 0.;
+
+   /*-----------------------------------------------------------
+    * Check a few things
+    *-----------------------------------------------------------*/
+
+   if ((P*Q*R) != num_procs)
+   {
+      hypre_printf("Error: Invalid number of processors or processor topology \n");
+      exit(1);
+   }
+
+   /*-----------------------------------------------------------
+    * Print driver parameters
+    *-----------------------------------------------------------*/
+ 
+   if (myid == 0)
+   {
+      hypre_printf("  Laplacian:\n");
+      hypre_printf("    (nx, ny, nz) = (%d, %d, %d)\n", nx, ny, nz);
+      hypre_printf("    (Px, Py, Pz) = (%d, %d, %d)\n", P,  Q,  R);
+      hypre_printf("    (cx, cy, cz) = (%f, %f, %f)\n\n", cx, cy, cz);
+   }
+
+   /*-----------------------------------------------------------
+    * Set up the grid structure
+    *-----------------------------------------------------------*/
+
+   /* compute p,q,r from P,Q,R and myid */
+   p = myid % P;
+   q = (( myid - p)/P) % Q;
+   r = ( myid - p - P*q)/( P*Q );
+
+   /*-----------------------------------------------------------
+    * Generate the matrix 
+    *-----------------------------------------------------------*/
+ 
+   values = hypre_CTAlloc(HYPRE_Real,  4, HYPRE_MEMORY_HOST);
+
+   values[1] = -cx;
+   values[2] = -cy;
+   values[3] = -cz;
+
+   values[0] = 0.;
+   if (nx > 1)
+   {
+      values[0] += 2.0*cx;
+   }
+   if (ny > 1)
+   {
+      values[0] += 2.0*cy;
+   }
+   if (nz > 1)
+   {
+      values[0] += 2.0*cz;
+   }
+
+   A = (HYPRE_ParCSRMatrix) GenerateLaplacian(hypre_MPI_COMM_WORLD, 
+                                                 nx, ny, nz, P, Q, R, p, q, r, values);
+   
+
+   hypre_TFree(values, HYPRE_MEMORY_HOST);
+
+   *A_ptr = A;
+
+   return (0);
+}
+
+/*----------------------------------------------------------------------
+ * Build grid aligned anisotropic 5-point laplacian in 2D 
+ *----------------------------------------------------------------------*/
+
+HYPRE_Int
+BuildParGridAlignedAnisotropic( HYPRE_ParCSRMatrix  *A_ptr,
+                 ProblemOptionsList &options)
+{
+   HYPRE_Int                 nx, ny, nz;
+   HYPRE_Int                 P, Q, R;
+   HYPRE_Real          cx, cy, cz;
+
+   HYPRE_ParCSRMatrix  A;
+
+   HYPRE_Int                 num_procs, myid;
+   HYPRE_Int                 p, q, r;
+   HYPRE_Real         *values;
+   HYPRE_Real         *mtrx;
+
+   HYPRE_Real          ep = .1;
+   
+   
+   
+   /*-----------------------------------------------------------
+    * Initialize some stuff
+    *-----------------------------------------------------------*/
+
+   hypre_MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs );
+   hypre_MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid );
+
+   /*-----------------------------------------------------------
+    * Set defaults
+    *-----------------------------------------------------------*/
+ 
+   nx = ceil(sqrt(options.n))*ceil(sqrt(num_procs));;
+   ny = ceil(sqrt(options.n))*ceil(sqrt(num_procs));
+   nz = 1;
+
+   P  = round(sqrt(num_procs));
+   Q  = round(sqrt(num_procs));
+   R  = 1;
+
+   cx = 1.;
+   cy = 0.001;
+   cz = 0.;
+
+   /*-----------------------------------------------------------
+    * Check a few things
+    *-----------------------------------------------------------*/
+
+   if ((P*Q*R) != num_procs)
+   {
+      hypre_printf("Error: Invalid number of processors or processor topology \n");
+      exit(1);
+   }
+
+   /*-----------------------------------------------------------
+    * Print driver parameters
+    *-----------------------------------------------------------*/
+ 
+   if (myid == 0)
+   {
+      hypre_printf("  Laplacian:\n");
+      hypre_printf("    (nx, ny, nz) = (%d, %d, %d)\n", nx, ny, nz);
+      hypre_printf("    (Px, Py, Pz) = (%d, %d, %d)\n", P,  Q,  R);
+      hypre_printf("    (cx, cy, cz) = (%f, %f, %f)\n\n", cx, cy, cz);
+   }
+
+   /*-----------------------------------------------------------
+    * Set up the grid structure
+    *-----------------------------------------------------------*/
+
+   /* compute p,q,r from P,Q,R and myid */
+   p = myid % P;
+   q = (( myid - p)/P) % Q;
+   r = ( myid - p - P*q)/( P*Q );
+
+   /*-----------------------------------------------------------
+    * Generate the matrix 
+    *-----------------------------------------------------------*/
+ 
+   values = hypre_CTAlloc(HYPRE_Real,  4, HYPRE_MEMORY_HOST);
+
+   values[1] = -cx;
+   values[2] = -cy;
+   values[3] = -cz;
+
+   values[0] = 0.;
+   if (nx > 1)
+   {
+      values[0] += 2.0*cx;
+   }
+   if (ny > 1)
+   {
+      values[0] += 2.0*cy;
+   }
+   if (nz > 1)
+   {
+      values[0] += 2.0*cz;
+   }
+
+   A = (HYPRE_ParCSRMatrix) GenerateLaplacian(hypre_MPI_COMM_WORLD, 
+                                                 nx, ny, nz, P, Q, R, p, q, r, values);
+   
+
+   hypre_TFree(values, HYPRE_MEMORY_HOST);
+
+   *A_ptr = A;
+
+   return (0);
+}
+

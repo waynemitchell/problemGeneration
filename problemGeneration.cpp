@@ -50,6 +50,12 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
             case -3:
                BuildParDifConv(&A, options);
                break;
+            case -4:
+               BuildParLaplacian5pt(&A, options);
+               break;
+            case -5:
+               BuildParGridAlignedAnisotropic(&A, options);
+               break;
             default:
                Tridiagonal(&A, options);
          }
@@ -81,9 +87,9 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
       if (options.dump_problem_to_dir[0] != '*')
       {
          char filename[1024];
-         sprintf(filename, "%s/A_problem%dP%dn%d", options.dump_problem_to_dir, options.problem, num_procs, options.n);
+         sprintf(filename, "%s/A_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
          hypre_ParCSRMatrixPrint( A, filename );
-         sprintf(filename, "%s/b_problem%dP%dn%d", options.dump_problem_to_dir, options.problem, num_procs, options.n);
+         sprintf(filename, "%s/b_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
          hypre_ParVectorPrint( B, filename );
       }
    }
