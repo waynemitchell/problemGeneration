@@ -3,7 +3,7 @@
 using namespace std;
 using namespace mfem;
 
-void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo, string custom_sol_name = "*")
+void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo, string custom_sol_name)
 {
    int num_procs, myid;
    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
