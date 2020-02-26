@@ -72,8 +72,9 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
       {
 
          if (options.problem < 10) GetMatrixDiffusion(&A,&B,&X,options,probInfo);
-         // else if (options.problem < 20) GetMatrixAdvectionDiffusionReaction(&A,&B,&X,options)
-         // else if (options.problem < 30) GetMatrixElasticity(&A,&B,&X,options);
+         // else if (options.problem < 20) GetMatrixAdvectionDiffusionReaction(&A,&B,&X,options,probInfo)
+         // else if (options.problem < 30) GetMatrixElasticity(&A,&B,&X,options,probInfo);
+         else if (options.problem < 40) GetMatrixTransport(&A,&B,&X,options,probInfo);
          else
          {
             if (myid == 0) cout << "Unknown problem" << endl;

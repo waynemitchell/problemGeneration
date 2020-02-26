@@ -16,6 +16,7 @@ add_library(problemGeneration
    "mfemtohypre.cpp"
    "getMesh.cpp"
    "diffusion.cpp"
+   "transport.cpp"
    "hypreMatrices.cpp")
 
 # mfem

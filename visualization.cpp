@@ -3,7 +3,7 @@
 using namespace std;
 using namespace mfem;
 
-void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo)
+void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo, string custom_sol_name = "*")
 {
    int num_procs, myid;
    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -19,9 +19,10 @@ void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector 
       ostringstream mesh_name, sol_name, res_name, rhs_name, suffix;
       suffix << "problem" << options.problem << "P" << num_procs << "n" << options.n << options.mesh;
       mesh_name << "outputs/mesh_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
-      sol_name << "outputs/sol_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
-      res_name << "outputs/res_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
-      rhs_name << "outputs/rhs_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      if (custom_sol_name == "*") sol_name << "outputs/sol_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      else sol_name << "outputs/" << custom_sol_name << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      // res_name << "outputs/res_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      // rhs_name << "outputs/rhs_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
 
       ofstream mesh_ofs(mesh_name.str().c_str());
       mesh_ofs.precision(8);
