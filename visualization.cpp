@@ -17,12 +17,12 @@ void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector 
       // Save the refined mesh and the solution in parallel. This output can
       // be viewed later using GLVis: "glvis -np <np> -m mesh -g sol".
       ostringstream mesh_name, sol_name, res_name, rhs_name, suffix;
-      suffix << "problem" << options.problem << "P" << num_procs << "n" << options.n << options.mesh;
-      mesh_name << "outputs/mesh_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
-      if (custom_sol_name == "*") sol_name << "outputs/sol_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      suffix << "_problem" << options.problem << "P" << num_procs << "n" << options.n << options.mesh;
+      mesh_name << "outputs/mesh" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      if (custom_sol_name == "*") sol_name << "outputs/sol" << suffix.str() << "." << setfill('0') << setw(6) << myid;
       else sol_name << "outputs/" << custom_sol_name << suffix.str() << "." << setfill('0') << setw(6) << myid;
-      // res_name << "outputs/res_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
-      // rhs_name << "outputs/rhs_" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      // res_name << "outputs/res" << suffix.str() << "." << setfill('0') << setw(6) << myid;
+      // rhs_name << "outputs/rhs" << suffix.str() << "." << setfill('0') << setw(6) << myid;
 
       ofstream mesh_ofs(mesh_name.str().c_str());
       mesh_ofs.precision(8);
@@ -50,8 +50,13 @@ void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector 
    }
    else
    {
+      ostringstream sol_name, suffix;
+      suffix << "_problem" << options.problem << "P" << num_procs << "n" << options.n;
+      if (custom_sol_name == "*") sol_name << "outputs/sol" << suffix.str();
+      else sol_name << "outputs/" << custom_sol_name << suffix.str();
+      hypre_ParVectorPrint(X, sol_name.str().c_str());
+
       // hypre_ParCSRMatrixMatvec(-1.0, A, X, 1.0, B);
-      // hypre_ParVectorPrint(X, "outputs/soln.txt");
-      // hypre_ParVectorPrint(B, "outputs/res.txt");
+      // hypre_ParVectorPrint(B, );
    }
 }
