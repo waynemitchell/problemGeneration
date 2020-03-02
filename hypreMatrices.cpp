@@ -235,22 +235,22 @@ BuildParDifConv( HYPRE_ParCSRMatrix  *A_ptr,
 
          break;
 
-      case -4:
-         nx = ceil(cbrt(options.n))*ceil(cbrt(num_procs));
-         ny = ceil(cbrt(options.n))*ceil(cbrt(num_procs));
-         nz = ceil(cbrt(options.n))*ceil(cbrt(num_procs));
+      // case -4:
+      //    nx = ceil(cbrt(options.n))*ceil(cbrt(num_procs));
+      //    ny = ceil(cbrt(options.n))*ceil(cbrt(num_procs));
+      //    nz = ceil(cbrt(options.n))*ceil(cbrt(num_procs));
 
-         P  = round(cbrt(num_procs));
-         Q  = round(cbrt(num_procs));
-         R  = num_procs / (P*Q);
+      //    P  = round(cbrt(num_procs));
+      //    Q  = round(cbrt(num_procs));
+      //    R  = num_procs / (P*Q);
 
-         cx = 1.;
-         cy = 1.;
-         cz = 1.;
+      //    cx = 1.;
+      //    cy = 1.;
+      //    cz = 1.;
 
-         ax = 1.;
-         ay = 1.;
-         az = 1.;
+      //    ax = 1.;
+      //    ay = 1.;
+      //    az = 1.;
 
          break;
 
