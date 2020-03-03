@@ -97,6 +97,7 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
 
    if (options.random_initial) HYPRE_ParVectorSetRandomValues(X, myid);
    if (options.rhs == -1) HYPRE_ParVectorSetRandomValues(B, myid+1);
+   if (options.rhs == 0) HYPRE_ParVectorSetConstantValues(B, 0.0);
 
    if (myid == 0)
    {
