@@ -74,6 +74,11 @@ ParMesh* GetMesh(ProblemOptionsList &options)
    {
       mesh->UniformRefinement();
    }
+   
+   // !!! Debug 
+   /* delete mesh; */
+   /* par_ref_levels = 0; */
+   /* mesh = new Mesh(options.n, options.n, Element::QUADRILATERAL); */
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
    //    this mesh further in parallel to increase the resolution. Once the

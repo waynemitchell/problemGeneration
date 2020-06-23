@@ -55,7 +55,30 @@ void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector 
       if (custom_sol_name == "*") sol_name << "outputs/sol" << suffix.str();
       else sol_name << "outputs/" << custom_sol_name << suffix.str();
       hypre_ParVectorPrint(X, sol_name.str().c_str());
-
+      if (probInfo.x_coords.size())
+      {
+         ostringstream coord_name;
+         coord_name << "outputs/x_coords" << suffix.str() << "." << myid; 
+         ofstream coords_out(coord_name.str().c_str());
+         for (auto coord = probInfo.x_coords.begin(); coord != probInfo.x_coords.end(); ++coord)
+            coords_out << *coord << endl;
+      }
+      if (probInfo.y_coords.size())
+      {
+         ostringstream coord_name;
+         coord_name << "outputs/y_coords" << suffix.str() << "." << myid; 
+         ofstream coords_out(coord_name.str().c_str());
+         for (auto coord = probInfo.y_coords.begin(); coord != probInfo.y_coords.end(); ++coord)
+            coords_out << *coord << endl;
+      }
+      if (probInfo.z_coords.size())
+      {
+         ostringstream coord_name;
+         coord_name << "outputs/z_coords" << suffix.str() << "." << myid; 
+         ofstream coords_out(coord_name.str().c_str());
+         for (auto coord = probInfo.z_coords.begin(); coord != probInfo.z_coords.end(); ++coord)
+            coords_out << *coord << endl;
+      }
       // hypre_ParCSRMatrixMatvec(-1.0, A, X, 1.0, B);
       // hypre_ParVectorPrint(B, );
    }

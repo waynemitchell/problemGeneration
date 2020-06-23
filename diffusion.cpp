@@ -270,7 +270,8 @@ double FourRegionScalar(const Vector &pt, double t)
 {
    double f = 1.0;
    
-   double cross_pt[2] = {0.0,0.0};
+   // double cross_pt[2] = {0.0,0.0};
+   double cross_pt[2] = {0.5,0.5};
 
    int dim = pt.Size();
    double x = pt(0), y = pt(1);//, z = 0.0;
@@ -302,7 +303,8 @@ void FourRegionMatrix(const Vector &pt, double t, DenseMatrix &mat)
 {
    double data[4] = {1.0, 0.0, 0.0, 1.0};
 
-   double cross_pt[2] = {0.0,0.0};
+   // double cross_pt[2] = {0.0,0.0};
+   double cross_pt[2] = {0.5,0.5};
 
    int dim = pt.Size();
    double x = pt(0), y = pt(1);//, z = 0.0;

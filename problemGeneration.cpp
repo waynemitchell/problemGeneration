@@ -4,6 +4,7 @@ using namespace std;
 using namespace mfem;
 
 void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options);
+void WriteMatrixMarket(HYPRE_ParCSRMatrix A_par, ProblemOptionsList &options);
 
 void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo)
 {
@@ -48,13 +49,13 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
                BuildParRotate7pt(&A, options);
                break;
             case -3:
-               BuildParDifConv(&A, options);
+               BuildParDifConv(&A, options, probInfo);
                break;
             case -4:
                BuildParLaplacian5pt(&A, options);
                break;
             case -5:
-               BuildParGridAlignedAnisotropic(&A, options);
+               BuildParGridAlignedAnisotropic(&A, options, probInfo);
                break;
             default:
                Tridiagonal(&A, options);
@@ -67,6 +68,7 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
          HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, global_m, partitioning, &X);
          HYPRE_ParVectorInitialize(B);
          HYPRE_ParVectorInitialize(X);
+        if (options.rhs == 1) HYPRE_ParVectorSetConstantValues(B, 1.0);
       }
       else 
       {
@@ -74,7 +76,7 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
          if (options.problem < 10) GetMatrixDiffusion(&A,&B,&X,options,probInfo);
          // else if (options.problem < 20) GetMatrixAdvectionDiffusionReaction(&A,&B,&X,options,probInfo)
          // else if (options.problem < 30) GetMatrixElasticity(&A,&B,&X,options,probInfo);
-         else if (options.problem < 40) GetMatrixTransport(&A,&B,&X,options,probInfo);
+         /* else if (options.problem < 40) GetMatrixTransport(&A,&B,&X,options,probInfo); */
          else
          {
             if (myid == 0) cout << "Unknown problem" << endl;
@@ -87,11 +89,18 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
       // Dump problem
       if (options.dump_problem_to_dir[0] != '*')
       {
-         char filename[1024];
-         sprintf(filename, "%s/A_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
-         hypre_ParCSRMatrixPrint( A, filename );
-         sprintf(filename, "%s/b_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
-         hypre_ParVectorPrint( B, filename );
+         if (options.dump_matrix_market)
+         {
+            WriteMatrixMarket(A, options);
+         }
+         else
+         {
+             char filename[1024];
+             sprintf(filename, "%s/A_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
+             hypre_ParCSRMatrixPrint( A, filename );
+             sprintf(filename, "%s/b_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
+             hypre_ParVectorPrint( B, filename );
+         }
       }
    }
 
@@ -114,6 +123,53 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
    if (myid == 0) cout << "   Generate problem: " << elapsed.count() << endl;
 }
 
+void WriteMatrixMarket(HYPRE_ParCSRMatrix A_par, ProblemOptionsList &options)
+{
+   int num_procs, myid;
+   MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs);
+   MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid);
+
+   if (num_procs != 1)
+   {
+      printf("Writing of matrix market only suppported for one processor\n");
+      MPI_Finalize();
+      exit(1);
+   }
+
+   // Write out the matrix
+   char filename[256];
+   sprintf(filename, "%s/A_problem%dn%d%s.mtx", options.dump_problem_to_dir, options.problem, options.n, options.mesh);
+
+   cout << "Writing matrix market " << filename << endl;
+
+   std::fstream ifs(filename, std::ios::out);
+   if (!ifs.is_open())
+   {
+      printf("Failed to open matrix market file.\n");
+      MPI_Finalize();
+      exit(1);
+   }
+
+   // Coordinate real general type 
+   ifs << "%%MatrixMarket matrix coordinate real general" << endl;
+
+   // Num rows, cols, nonzeros
+   hypre_CSRMatrix *A = hypre_ParCSRMatrixDiag(A_par);
+   ifs << hypre_CSRMatrixNumRows(A) << " "
+       << hypre_CSRMatrixNumCols(A) << " "
+       << hypre_CSRMatrixNumNonzeros(A) << " " << endl;
+
+   // Write in COO format (not necessarily sorted by row)
+   for (auto i = 0; i < hypre_CSRMatrixNumRows(A); i++)
+   {
+       for (auto j = hypre_CSRMatrixI(A)[i]; j < hypre_CSRMatrixI(A)[i+1]; j++)
+       {
+           ifs << i+1 << " " 
+               << hypre_CSRMatrixJ(A)[j] + 1 << " "
+               << hypre_CSRMatrixData(A)[j] << endl;
+       }
+   }
+}
 
 void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options)
 {
@@ -172,9 +228,9 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    }
 
    // Read in COO format (not necessarily sorted by row)
-   HYPRE_Int *matrix_i = hypre_CTAlloc(HYPRE_Int, num_nonzeros, HYPRE_MEMORY_SHARED);
-   HYPRE_Int *matrix_j = hypre_CTAlloc(HYPRE_Int, num_nonzeros, HYPRE_MEMORY_SHARED);
-   HYPRE_Complex *matrix_coo_data = hypre_CTAlloc(HYPRE_Complex, num_nonzeros, HYPRE_MEMORY_SHARED);
+   HYPRE_Int *matrix_i = hypre_CTAlloc(HYPRE_Int, num_nonzeros, HYPRE_MEMORY_HOST);
+   HYPRE_Int *matrix_j = hypre_CTAlloc(HYPRE_Int, num_nonzeros, HYPRE_MEMORY_HOST);
+   HYPRE_Complex *matrix_coo_data = hypre_CTAlloc(HYPRE_Complex, num_nonzeros, HYPRE_MEMORY_HOST);
 
    int cnt = 0;
    while (std::getline(ifs, line)) 
@@ -195,9 +251,9 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
       }
    }
 
-   HYPRE_Int *row_ptr = hypre_CTAlloc(HYPRE_Int, num_rows + 1, HYPRE_MEMORY_SHARED);
-   HYPRE_Int *col_ind = hypre_CTAlloc(HYPRE_Int, num_nonzeros, HYPRE_MEMORY_SHARED);
-   HYPRE_Complex *matrix_csr_data = hypre_CTAlloc(HYPRE_Complex, num_nonzeros, HYPRE_MEMORY_SHARED);
+   HYPRE_Int *row_ptr = hypre_CTAlloc(HYPRE_Int, num_rows + 1, HYPRE_MEMORY_HOST);
+   HYPRE_Int *col_ind = hypre_CTAlloc(HYPRE_Int, num_nonzeros, HYPRE_MEMORY_HOST);
+   HYPRE_Complex *matrix_csr_data = hypre_CTAlloc(HYPRE_Complex, num_nonzeros, HYPRE_MEMORY_HOST);
    HYPRE_Int row = matrix_i[0];
 
    // Get row sums
@@ -233,9 +289,9 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
       row_ptr[i] = last;
       last = temp;
    }
-   hypre_TFree(matrix_i, HYPRE_MEMORY_SHARED);
-   hypre_TFree(matrix_j, HYPRE_MEMORY_SHARED);
-   hypre_TFree(matrix_coo_data, HYPRE_MEMORY_SHARED);
+   hypre_TFree(matrix_i, HYPRE_MEMORY_HOST);
+   hypre_TFree(matrix_j, HYPRE_MEMORY_HOST);
+   hypre_TFree(matrix_coo_data, HYPRE_MEMORY_HOST);
 
    hypre_CSRMatrix *A_seq = hypre_CSRMatrixCreate(num_rows, num_cols, num_nonzeros);
    hypre_CSRMatrixI(A_seq) = row_ptr;
@@ -297,7 +353,7 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
       exit(1);
    }
 
-   HYPRE_Complex *b_data = hypre_CTAlloc(HYPRE_Complex, b_num_rows, HYPRE_MEMORY_SHARED);
+   HYPRE_Complex *b_data = hypre_CTAlloc(HYPRE_Complex, b_num_rows, HYPRE_MEMORY_HOST);
 
    cnt = 0;
    while (std::getline(ifs_b, line)) 

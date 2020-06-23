@@ -177,17 +177,18 @@ static inline HYPRE_Int sign_double(HYPRE_Real a)
 }
 
 /*----------------------------------------------------------------------
- * Build standard 7-point convection-diffusion operator
+ * Build standard 5-point convection-diffusion operator in 2D
  * Parameters given in command line.
  * Operator:
  *
- *  -cx Dxx - cy Dyy - cz Dzz + ax Dx + ay Dy + az Dz = f
+ *  -epsilon (Dxx + Dyy) + a Dx + b Dy = f
  *
  *----------------------------------------------------------------------*/
 
 HYPRE_Int
 BuildParDifConv( HYPRE_ParCSRMatrix  *A_ptr,
-                 ProblemOptionsList &options)
+                 ProblemOptionsList &options,
+                 ProblemInfo &probInfo)
 {
    HYPRE_BigInt        nx, ny, nz;
    HYPRE_Int           P, Q, R;
@@ -222,15 +223,15 @@ BuildParDifConv( HYPRE_ParCSRMatrix  *A_ptr,
          nz = 1;
 
          P  = round(sqrt(num_procs));
-         Q  = round(sqrt(num_procs));
+         Q  = num_procs / P;
          R  = 1;
 
-         cx = 1.;
-         cy = 1.;
+         cx = options.epsilon;
+         cy = options.epsilon;
          cz = 0.;
 
-         ax = 2.;
-         ay = 3.;
+         ax = options.a;
+         ay = options.b;
          az = 0.;
 
          break;
@@ -298,6 +299,21 @@ BuildParDifConv( HYPRE_ParCSRMatrix  *A_ptr,
    hinx = 1./(HYPRE_Real)(nx+1);
    hiny = 1./(HYPRE_Real)(ny+1);
    hinz = 1./(HYPRE_Real)(nz+1);
+
+   HYPRE_BigInt *nx_part;
+   HYPRE_BigInt *ny_part;
+   hypre_GeneratePartitioning(nx,P,&nx_part);
+   hypre_GeneratePartitioning(ny,Q,&ny_part);
+   HYPRE_Real nx_local =(HYPRE_Int)(nx_part[p+1] - nx_part[p]);
+   HYPRE_Real ny_local =(HYPRE_Int)(ny_part[q+1] - ny_part[q]);
+
+   HYPRE_Int i;
+   HYPRE_Real x_step = 1.0/(nx+1);
+   HYPRE_Real y_step = 1.0/(ny+1);
+   for (i = 0; i < nx_local; i++)
+      probInfo.x_coords.push_back((nx_part[p] + i + 1)*x_step);
+   for (i = 0; i < ny_local; i++)
+      probInfo.y_coords.push_back((ny_part[q] + i + 1)*y_step);
 
    /*-----------------------------------------------------------
     * Generate the matrix
@@ -553,9 +569,6 @@ BuildParLaplacian5pt( HYPRE_ParCSRMatrix  *A_ptr,
    HYPRE_Real         *values;
    HYPRE_Real         *mtrx;
 
-   HYPRE_Real          ep = .1;
-   
-   
    
    /*-----------------------------------------------------------
     * Initialize some stuff
@@ -568,12 +581,12 @@ BuildParLaplacian5pt( HYPRE_ParCSRMatrix  *A_ptr,
     * Set defaults
     *-----------------------------------------------------------*/
  
-   nx = ceil(sqrt(options.n))*ceil(sqrt(num_procs));;
+   nx = ceil(sqrt(options.n))*ceil(sqrt(num_procs));
    ny = ceil(sqrt(options.n))*ceil(sqrt(num_procs));
    nz = 1;
 
    P  = round(sqrt(num_procs));
-   Q  = round(sqrt(num_procs));
+   Q  = num_procs / P;
    R  = 1;
 
    cx = 1.;
@@ -652,7 +665,8 @@ BuildParLaplacian5pt( HYPRE_ParCSRMatrix  *A_ptr,
 
 HYPRE_Int
 BuildParGridAlignedAnisotropic( HYPRE_ParCSRMatrix  *A_ptr,
-                 ProblemOptionsList &options)
+                 ProblemOptionsList &options,
+                 ProblemInfo &probInfo)
 {
    HYPRE_Int                 nx, ny, nz;
    HYPRE_Int                 P, Q, R;
@@ -665,9 +679,6 @@ BuildParGridAlignedAnisotropic( HYPRE_ParCSRMatrix  *A_ptr,
    HYPRE_Real         *values;
    HYPRE_Real         *mtrx;
 
-   HYPRE_Real          ep = .1;
-   
-   
    
    /*-----------------------------------------------------------
     * Initialize some stuff
@@ -680,12 +691,12 @@ BuildParGridAlignedAnisotropic( HYPRE_ParCSRMatrix  *A_ptr,
     * Set defaults
     *-----------------------------------------------------------*/
  
-   nx = ceil(sqrt(options.n))*ceil(sqrt(num_procs));;
+   nx = ceil(sqrt(options.n))*ceil(sqrt(num_procs));
    ny = ceil(sqrt(options.n))*ceil(sqrt(num_procs));
    nz = 1;
 
    P  = round(sqrt(num_procs));
-   Q  = round(sqrt(num_procs));
+   Q  = num_procs / P;
    R  = 1;
 
    cx = 1.;
@@ -721,8 +732,23 @@ BuildParGridAlignedAnisotropic( HYPRE_ParCSRMatrix  *A_ptr,
    /* compute p,q,r from P,Q,R and myid */
    p = myid % P;
    q = (( myid - p)/P) % Q;
-   r = ( myid - p - P*q)/( P*Q );
+   r = 0;
 
+   HYPRE_BigInt *nx_part;
+   HYPRE_BigInt *ny_part;
+   hypre_GeneratePartitioning(nx,P,&nx_part);
+   hypre_GeneratePartitioning(ny,Q,&ny_part);
+   HYPRE_Real nx_local =(HYPRE_Int)(nx_part[p+1] - nx_part[p]);
+   HYPRE_Real ny_local =(HYPRE_Int)(ny_part[q+1] - ny_part[q]);
+
+   HYPRE_Int i;
+   HYPRE_Real x_step = 1.0/(nx+1);
+   HYPRE_Real y_step = 1.0/(ny+1);
+   for (i = 0; i < nx_local; i++)
+      probInfo.x_coords.push_back((nx_part[p] + i + 1)*x_step);
+   for (i = 0; i < ny_local; i++)
+      probInfo.y_coords.push_back((ny_part[q] + i + 1)*y_step);
+   
    /*-----------------------------------------------------------
     * Generate the matrix 
     *-----------------------------------------------------------*/

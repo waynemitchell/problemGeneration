@@ -7,6 +7,9 @@ struct ProblemOptionsList : public mfem::OptionsParser
 {
    // Default options list
    int problem = 0;
+   double epsilon = 0.001;
+   double a = 0.0;
+   double b = 0.0;
    int rhs = 1;
    int random_initial = 0;
    int dirichlet_bcs = 1;
@@ -17,6 +20,7 @@ struct ProblemOptionsList : public mfem::OptionsParser
    bool static_cond = false;
    bool visualization = 0;
    const char *dump_problem_to_dir = "*";
+   bool dump_matrix_market = false;
    const char *read_problem_from_dir = "*";
    bool read_matrix_market = false;
    bool read_exact_solution = false;
@@ -49,6 +53,11 @@ struct ProblemInfo
    // Store the finite element collection and space
    mfem::FiniteElementCollection *fec;
    mfem::ParFiniteElementSpace *fespace;
+
+   // For hypre generated problems, store the dof locations
+   std::vector<HYPRE_Real> x_coords;
+   std::vector<HYPRE_Real> y_coords;
+   std::vector<HYPRE_Real> z_coords;
 };
 
 // Main problem generation call
@@ -59,15 +68,15 @@ mfem::ParMesh* GetMesh(ProblemOptionsList &options);
 
 // MFEM generated problems
 void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo);
-void GetMatrixTransport(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo);
+/* void GetMatrixTransport(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo); */
 
 // hypre generated problems
 HYPRE_Int BuildParLaplacian27pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options );
 HYPRE_Int BuildParRotate7pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options );
-HYPRE_Int BuildParDifConv(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options);
+HYPRE_Int BuildParDifConv(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options, ProblemInfo &probInfo);
 HYPRE_Int Tridiagonal(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options);
 HYPRE_Int BuildParLaplacian5pt(HYPRE_ParCSRMatrix  *A_ptr, ProblemOptionsList &options);
-HYPRE_Int BuildParGridAlignedAnisotropic(HYPRE_ParCSRMatrix  *A_ptr, ProblemOptionsList &options);
+HYPRE_Int BuildParGridAlignedAnisotropic(HYPRE_ParCSRMatrix  *A_ptr, ProblemOptionsList &options, ProblemInfo &probInfo);
 
 // Conversion from hypre objects to hypre
 void MFEMtoHYPRE(mfem::HypreParMatrix &A, mfem::Vector &B, mfem::Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out);

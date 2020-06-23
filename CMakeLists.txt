@@ -16,7 +16,7 @@ add_library(problemGeneration
    "mfemtohypre.cpp"
    "getMesh.cpp"
    "diffusion.cpp"
-   "transport.cpp"
+   # "transport.cpp"
    "hypreMatrices.cpp")
 
 # mfem
@@ -50,9 +50,9 @@ target_link_libraries(problemGeneration ${LIBRARIES})
 
 
 
-# Install 
+# Install
 install(
-   DIRECTORY "${PROJECT_SOURCE_DIR}/include/" 
+   DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
    DESTINATION "include")
 install(
     TARGETS problemGeneration
