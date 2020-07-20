@@ -68,7 +68,7 @@ mfem::ParMesh* GetMesh(ProblemOptionsList &options);
 
 // MFEM generated problems
 void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo);
-/* void GetMatrixTransport(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo); */
+void GetMatrixTransport(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo);
 
 // hypre generated problems
 HYPRE_Int BuildParLaplacian27pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options );
@@ -82,4 +82,4 @@ HYPRE_Int BuildParGridAlignedAnisotropic(HYPRE_ParCSRMatrix  *A_ptr, ProblemOpti
 void MFEMtoHYPRE(mfem::HypreParMatrix &A, mfem::Vector &B, mfem::Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out);
 
 // Visualization
-void VisualizeSolution(HYPRE_ParCSRMatrix A, HYPRE_ParVector B, HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo, std::string custom_sol_name = "*");
+void Visualize(HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo, std::string custom_sol_name = "*");

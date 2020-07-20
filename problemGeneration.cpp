@@ -320,7 +320,7 @@ void ReadMatrixMarket(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_P
    }
 
    // Read in the RHS
-   sprintf(filename, "%s_b.mtx", options.read_problem_from_dir);
+   sprintf(filename, "%s_b_uniform-min-1-max-10.mtx", options.read_problem_from_dir);
 
    std::fstream ifs_b(filename, std::ios::in);
    if (!ifs.is_open())

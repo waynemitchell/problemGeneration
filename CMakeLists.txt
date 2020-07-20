@@ -21,34 +21,21 @@ add_library(problemGeneration
 
 # mfem
 find_package(MFEM REQUIRED)
-include_directories(SYSTEM ${MFEM_INCLUDE_DIRS})
-list(APPEND LIBRARIES "${MFEM_LIBRARY_DIR}/libmfem.a")
+include_directories(${MFEM_INCLUDE_DIRS})
+list(APPEND LIBRARIES ${MFEM_LIBRARIES})
+
+# hypre
+find_package(HYPRE REQUIRED)
+include_directories(${HYPRE_INCLUDE_DIRS})
+list(APPEND LIBRARIES ${HYPRE_LIBRARIES})
 
 # MPI
 find_package(MPI REQUIRED)
 include_directories(${MPI_CXX_INCLUDE_PATH})
 list(APPEND LIBRARIES ${MPI_CXX_LIBRARIES})
 
-# hypre
-set(HYPRE_DIR /home/nfs/wmitchell/Documents/hypre/src/hypre)
-set(HYPRE_LIB ${HYPRE_DIR}/lib/libHYPRE.a)
-include_directories(${HYPRE_DIR}/include)
-list(APPEND LIBRARIES ${HYPRE_LIB})
-
 # Link all libraries
 target_link_libraries(problemGeneration ${LIBRARIES})
-
-
-
-# CMakeshift stuff???
-# find_package(CMakeshift 3.4 REQUIRED)
-# include(CMakeshift/InstallSimpleLibraryPackage)
-# cmakeshift_install_simple_library_package(
-#     EXPORT problemGenerationTargets
-#     VERSION_COMPATIBILITY SameMajorVersion
-#     CONFIG_TEMPLATE "cmake/problemGenerationConfig.cmake.in")
-
-
 
 # Install
 install(
