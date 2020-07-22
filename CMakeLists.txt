@@ -8,6 +8,8 @@ project(problemGeneration
     VERSION 1.0.0
     LANGUAGES CXX)
 
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
 add_library(problemGeneration
    STATIC
    "problemGeneration.cpp"
@@ -22,17 +24,24 @@ add_library(problemGeneration
 # mfem
 find_package(MFEM REQUIRED)
 include_directories(${MFEM_INCLUDE_DIRS})
-list(APPEND LIBRARIES ${MFEM_LIBRARIES})
+list(APPEND LIBRARIES "${MFEM_LIBRARY_DIR}/libmfem.a")
+
+# metis
+include_directories("${MY_PREFIX}/include")
+list(APPEND LIBRARIES "${MY_PREFIX}/lib/libmetis.a")
 
 # hypre
 find_package(HYPRE REQUIRED)
+set(HYPRE_LIBRARY_DIR "${HYPRE_DIR}/../../../lib64")
+set(HYPRE_INCLUDE_DIRS "${HYPRE_DIR}/../../../include")
 include_directories(${HYPRE_INCLUDE_DIRS})
-list(APPEND LIBRARIES ${HYPRE_LIBRARIES})
+list(APPEND LIBRARIES "${HYPRE_LIBRARY_DIR}/libHYPRE.a")
 
 # MPI
 find_package(MPI REQUIRED)
 include_directories(${MPI_CXX_INCLUDE_PATH})
 list(APPEND LIBRARIES ${MPI_CXX_LIBRARIES})
+
 
 # Link all libraries
 target_link_libraries(problemGeneration ${LIBRARIES})

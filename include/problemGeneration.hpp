@@ -82,4 +82,4 @@ HYPRE_Int BuildParGridAlignedAnisotropic(HYPRE_ParCSRMatrix  *A_ptr, ProblemOpti
 void MFEMtoHYPRE(mfem::HypreParMatrix &A, mfem::Vector &B, mfem::Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out);
 
 // Visualization
-void Visualize(HYPRE_ParVector X, ProblemOptionsList &options, ProblemInfo &probInfo, std::string custom_sol_name = "*");
+void Visualize(HYPRE_ParVector X, HYPRE_Int dump_mesh, ProblemOptionsList &options, ProblemInfo &probInfo, std::string custom_sol_name = "*");
