@@ -7,6 +7,8 @@ double PointSource(const Vector &pt, double t);
 double JumpCoeffScalarFunc(const Vector &pt, double t);
 double FourRegionScalar(const Vector &pt, double t);
 void FourRegionMatrix(const Vector &pt, double t, DenseMatrix &mat);
+void SmoothVaryingGridAlignedAnisotropy(const Vector &pt, double t, DenseMatrix &mat);
+void DiscontinuousVaryingGridAlignedAnisotropy(const Vector &pt, double t, DenseMatrix &mat);
 
 void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out, ProblemOptionsList &options, ProblemInfo &probInfo)
 {
@@ -200,6 +202,20 @@ void GetMatrixDiffusion(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
          probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
          break;
       }
+      case 5: // Smoothly varying (strenth and direction) grid aligned anisotropy (2D)
+      {         
+         probInfo.blf_matrix_coeffs.push_back( new MatrixFunctionCoefficient(2, SmoothVaryingGridAlignedAnisotropy) );
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
+
+         break;
+      }
+      case 6: // Discontinuous varying (strenth and direction) grid aligned anisotropy (2D)
+      {         
+         probInfo.blf_matrix_coeffs.push_back( new MatrixFunctionCoefficient(2, DiscontinuousVaryingGridAlignedAnisotropy) );
+         probInfo.a->AddDomainIntegrator(new DiffusionIntegrator(*(probInfo.blf_matrix_coeffs[0])));
+
+         break;
+      }
       default:
       {
          if (myid == 0) printf("Unknown problem.\n");
@@ -333,6 +349,60 @@ void FourRegionMatrix(const Vector &pt, double t, DenseMatrix &mat)
          data[1] = -c*s + ep*c*s;
          data[2] = -c*s + ep*c*s;
          data[3] = s*s + ep*c*c;         
+      }
+   }
+
+   mat = data;
+}
+
+void SmoothVaryingGridAlignedAnisotropy(const Vector &pt, double t, DenseMatrix &mat)
+{
+   double data[4] = {0.0, 0.0, 0.0, 0.0};
+
+   int dim = pt.Size();
+   double x = pt(0), y = pt(1);//, z = 0.0;
+
+   if (dim == 2)
+   {
+      double ep_x = (1.0/exp(-4.001))*exp(-1.0/((1.0 - x)*x + 0.001)) + 0.001;
+      double ep_y = (1.0/exp(-4.001))*exp(-1.0/((1.0 - y)*y + 0.001)) + 0.001;
+      data[0] = 1.0/ep_x;
+      data[1] = 0.0;
+      data[2] = 0.0;         
+      data[3] = 1.0/ep_y;
+   }
+
+   mat = data;
+}
+
+void DiscontinuousVaryingGridAlignedAnisotropy(const Vector &pt, double t, DenseMatrix &mat)
+{
+   double data[4] = {1.0, 0.0, 0.0, 1.0};
+
+   // double cross_pt[2] = {0.0,0.0};
+   double cross_pt[2] = {0.5,0.5};
+   double ep = 0.001;
+
+   int dim = pt.Size();
+   double x = pt(0), y = pt(1);//, z = 0.0;
+
+   if (dim == 2)
+   {
+      if (x <= cross_pt[0] && y <= cross_pt[1])
+      {
+         data[3] = ep;
+      }
+      else if (cross_pt[0] < x && y <= cross_pt[1])
+      {
+         data[0] = ep;
+      }
+      else if (x <= cross_pt[0] && cross_pt[1] < y)
+      {
+         data[0] = ep;
+      }
+      else if (cross_pt[0] < x && cross_pt[1] < y)
+      {
+         data[3] = ep;
       }
    }
 

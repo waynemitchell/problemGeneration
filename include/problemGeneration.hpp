@@ -1,3 +1,6 @@
+#ifndef PROBLEM_GENERATION_HEADER
+#define PROBLEM_GENERATION_HEADER
+
 #include "mfem.hpp"
 #include <fstream>
 #include <iostream>
@@ -72,7 +75,7 @@ void GetMatrixTransport(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE
 
 // hypre generated problems
 HYPRE_Int BuildParLaplacian27pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options );
-HYPRE_Int BuildParRotate7pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options );
+HYPRE_Int BuildParRotate7pt(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options, ProblemInfo &probInfo );
 HYPRE_Int BuildParDifConv(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options, ProblemInfo &probInfo);
 HYPRE_Int Tridiagonal(HYPRE_ParCSRMatrix *A_ptr, ProblemOptionsList &options);
 HYPRE_Int BuildParLaplacian5pt(HYPRE_ParCSRMatrix  *A_ptr, ProblemOptionsList &options);
@@ -83,3 +86,5 @@ void MFEMtoHYPRE(mfem::HypreParMatrix &A, mfem::Vector &B, mfem::Vector &X,  HYP
 
 // Visualization
 void Visualize(HYPRE_ParVector X, HYPRE_Int dump_mesh, ProblemOptionsList &options, ProblemInfo &probInfo, std::string custom_sol_name = "*");
+
+#endif

@@ -46,7 +46,7 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
                BuildParLaplacian27pt(&A, options);
                break;
             case -2:
-               BuildParRotate7pt(&A, options);
+               BuildParRotate7pt(&A, options, probInfo);
                break;
             case -3:
                BuildParDifConv(&A, options, probInfo);
@@ -60,8 +60,8 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
             default:
                Tridiagonal(&A, options);
          }
-         HYPRE_Int *partitioning;
-         HYPRE_Int global_m, global_n;
+         HYPRE_BigInt *partitioning;
+         HYPRE_BigInt global_m, global_n;
          HYPRE_ParCSRMatrixGetRowPartitioning(A, &partitioning);
          HYPRE_ParCSRMatrixGetDims(A, &global_m, &global_n);
          HYPRE_ParVectorCreate(hypre_MPI_COMM_WORLD, global_m, partitioning, &B);
@@ -99,7 +99,7 @@ void GenerateProblem(HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_Pa
              sprintf(filename, "%s/A_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
              hypre_ParCSRMatrixPrint( A, filename );
              sprintf(filename, "%s/b_problem%dP%dn%d%s", options.dump_problem_to_dir, options.problem, num_procs, options.n, options.mesh);
-             hypre_ParVectorPrint( B, filename );
+             HYPRE_ParVectorPrint( B, filename );
          }
       }
    }

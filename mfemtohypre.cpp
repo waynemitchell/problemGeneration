@@ -6,7 +6,8 @@ using namespace mfem;
 // Conversion from hypre objects to hypre
 void MFEMtoHYPRE(HypreParMatrix &A, Vector &B, Vector &X,  HYPRE_ParCSRMatrix *A_out, HYPRE_ParVector *B_out, HYPRE_ParVector *X_out)
 {
-   *A_out = A.StealData();
+   /* *A_out = A.StealData(); */
+   *A_out = (HYPRE_ParCSRMatrix) A;
 
    HYPRE_Int global_m, global_n;
    HYPRE_ParCSRMatrixGetDims(*A_out, &global_m, &global_n);

@@ -31,11 +31,16 @@ include_directories("${MY_PREFIX}/include")
 list(APPEND LIBRARIES "${MY_PREFIX}/lib/libmetis.a")
 
 # hypre
-find_package(HYPRE REQUIRED)
-set(HYPRE_LIBRARY_DIR "${HYPRE_DIR}/../../../lib64")
-set(HYPRE_INCLUDE_DIRS "${HYPRE_DIR}/../../../include")
+# find_package(HYPRE REQUIRED)
+set(HYPRE_DIR "/home/nfs/wmitchell/Documents/hypre/src/hypre")
+set(HYPRE_LIBRARY_DIR "${HYPRE_DIR}/lib")
+set(HYPRE_INCLUDE_DIRS "${HYPRE_DIR}/include")
 include_directories(${HYPRE_INCLUDE_DIRS})
 list(APPEND LIBRARIES "${HYPRE_LIBRARY_DIR}/libHYPRE.a")
+
+# OpenMP
+# find_package(OpenMP)
+# list(APPEND LIBRARIES OpenMP::OpenMP_CXX)
 
 # MPI
 find_package(MPI REQUIRED)

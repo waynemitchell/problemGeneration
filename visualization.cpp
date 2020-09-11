@@ -30,9 +30,12 @@ void Visualize(HYPRE_ParVector X, HYPRE_Int dump_mesh, ProblemOptionsList &optio
          nodes_name << "outputs/nodes_" << custom_sol_name << "." << setfill('0') << setw(6) << myid; 
       }
 
-      ofstream mesh_ofs(mesh_name.str().c_str());
-      mesh_ofs.precision(8);
-      if (dump_mesh) probInfo.pmesh->Print(mesh_ofs);
+      if (dump_mesh)
+      {
+         ofstream mesh_ofs(mesh_name.str().c_str());
+         mesh_ofs.precision(8);
+         probInfo.pmesh->Print(mesh_ofs);
+      }
       
 
       HypreParVector X_mfem(X);
@@ -58,8 +61,9 @@ void Visualize(HYPRE_ParVector X, HYPRE_Int dump_mesh, ProblemOptionsList &optio
       ostringstream sol_name, suffix;
       suffix << "_problem" << options.problem << "P" << num_procs << "n" << options.n;
       if (custom_sol_name == "*") sol_name << "outputs/sol" << suffix.str();
-      else sol_name << "outputs/" << custom_sol_name << suffix.str();
-      hypre_ParVectorPrint(X, sol_name.str().c_str());
+      else sol_name << "outputs/" << custom_sol_name;
+
+      HYPRE_ParVectorPrint(X, sol_name.str().c_str());
       if (probInfo.x_coords.size() && dump_mesh)
       {
          ostringstream coord_name;
